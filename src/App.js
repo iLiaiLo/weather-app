@@ -1,63 +1,55 @@
 import React from "react"; 
 import { useState } from "react";
+import apiData from "./Data"; //ignored
+import WeatherData from "./Components/WeatherData";
+import LocationError from "./Components/LocationError";
+import Loading from "./loader/Loading";
+import Input from "./Components/Input";
+import './App.css';
 
-function Loading(){
-  return <div className="load">
-    <div className="circle"></div>
-  </div>
-}
+
 
 function App() {
-  const [search,setSearch]=useState("")
+  const [search,setSearch]=useState("");
   const [weatherData,setWeatherData]=useState({data:{},loading:false});
 
-  const api={
-    key:"cade8244dcabce81842511b67d0115d8",
-    baseUrl:"https://api.openweathermap.org/data/2.5/weather"
+  const {key,baseUrl}=apiData;
+
+  const handleChange=(e)=>{
+    setSearch(e.target.value)
   }
 
-  async function weatherSearch(e){
-    if(e.key==="Enter"){
-    setSearch("")
-    setWeatherData({...weatherData,loading:true})
-    e.preventDefault()
-    await fetch(`${api.baseUrl}?q=${search}&appid=${api.key}`)
-    .then(res=>res.json())
-    .then(data=>{
-      setWeatherData({data:data,loading:false})
-      console.log(data)
-    })
-    .catch((error)=>{
-      console.log("error",error);
-    })
-    
+  const weatherSearch=async (e)=>{
+
+    try {
+      
+      if(e.key==="Enter"){
+        e.preventDefault()
+
+        setWeatherData({...weatherData,loading:true})
+
+        const res=await fetch(`${baseUrl}?q=${search}&appid=${key}`);
+
+        const data=await res.json();
+        setWeatherData({data:data,loading:false})
+      }
+
+    } catch (error) {
+      console.log(error.message)
+    }
   }
-  }
+
 
   return (
   <div className="container">
-    
-    <input type="text" className="weatherInput" placeholder="enter city name"
-     value={search} onChange={e=>setSearch(e.target.value)} onKeyDownCapture={weatherSearch} />
+    <Input search={search} handleChange={handleChange} weatherSearch={weatherSearch}/>
 
     {weatherData.loading && <Loading />}
 
-    {weatherData && weatherData.data && !weatherData.loading && weatherData.data.main ? (
-      
-    <section className="mainContent">
-      <div>City: {weatherData.data.name} {weatherData.data.sys.country}</div>
-      <div>Temperature: {(weatherData.data.main.temp - 273.15).toFixed(2)} &deg;C</div>
-      <div>wind speed: {weatherData.data.wind.speed} m/s</div>
+    {weatherData && weatherData.data && !weatherData.loading && weatherData.data.main
+    && <WeatherData weatherData={weatherData} />}
 
-      <img src={`https://openweathermap.org/img/wn/${weatherData.data.weather[0].icon}@2x.png`} alt="aall" />
-
-      <div>Weather: {weatherData.data.weather[0].main}</div>
-      <div>Description: {weatherData.data.weather[0].description}</div>
-    </section>
-    
-  ):(<></>)
-    }
-    {weatherData.data.message==="city not found" && !weatherData.loading && <section className="incorrectName">Incorrect location</section>}
+    {weatherData.data.message==="city not found" && !weatherData.loading && <LocationError />}
 
   </div>
   )
